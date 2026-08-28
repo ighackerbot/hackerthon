@@ -332,6 +332,16 @@
       <h2>The full journey, in the open</h2>
       <p>Nothing below can be edited or deleted after the fact — only added to. That's the point.</p>
     </div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="ledger-top">
+        <div>
+          <label style="margin-top:0">Demo application</label>
+          <select id="ledger-app-select" onchange="selectLedgerApplication(this.value)"></select>
+        </div>
+        <button class="btn btn-ghost" onclick="verifyLedgerIntegrity()">Verify integrity</button>
+      </div>
+      <div id="ledger-verify-result" class="hint" style="margin-top:12px">Fetch a chain, then verify that every recorded hash still matches.</div>
+    </div>
     <div id="ledger-container" class="ledger"></div>
   </section>
 
@@ -396,6 +406,7 @@
 <script>
 /* ---------- state ---------- */
 let appId = null;
+let currentLedgerChain = [];
 
 const institutes = [
   {name:"Govt Polytechnic, Bhagalpur", apps:2140, rejRate:0.41, reason:"Income certificate mismatch"},
@@ -412,6 +423,13 @@ const ledgerApplicants = [
   {id:"NSP-88213", student:"Aisha Khatoon", institute:"Govt Polytechnic, Bhagalpur", category:"OBC", income:182000},
   {id:"NSP-88491", student:"Meena Rawat", institute:"Rural Degree College, Chitrakoot", category:"SC", income:146000},
   {id:"NSP-88706", student:"Sameer Ali", institute:"North Bengal Technical Institute, Siliguri", category:"General (EWS)", income:228500},
+];
+
+const newApplicationLedgerTemplate = [
+  {stage:"Institute Verification", officer:"R. Sinha, Scholarship Cell", status:"flagged", remark:"Marked 'income certificate mismatch'. This institute rejects 41% of applications for this exact reason - 3.4x the national average (12%). Flagged for district review."},
+  {stage:"District Verification", officer:"District Welfare Office", status:"pending", remark:"Cannot proceed until the flagged institute step is resolved or overridden."},
+  {stage:"State Verification", officer:"State Scholarship Cell", status:"pending", remark:"Queued after district verification."},
+  {stage:"Fund Disbursal", officer:"Public Finance System", status:"pending", remark:"Queued after state approval."},
 ];
 
 const grievances = [
@@ -478,25 +496,84 @@ async function runEligibility(){
 function submitApplication(){
   appId = "NSP-" + Math.floor(80000+Math.random()*9999);
   toast("Application "+appId+" submitted. Opening your public timeline…");
-  setTimeout(()=>{ buildLedger(); go('track'); }, 500);
+  setTimeout(async ()=>{
+    try{
+      await seedSubmittedApplication(appId);
+    }catch(err){
+      toast("Ledger API unavailable; opening the track view anyway.");
+    }
+    await buildLedger(appId);
+    go('track');
+  }, 500);
 }
 
-function buildLedger(){
-  document.getElementById('track-id').textContent = appId || "88213";
-  const nodes = [
-    {stage:"Institute Verification", officer:"R. Sinha, Scholarship Cell", status:"flagged",
-     time:"14 Aug 2026, 11:02 IST",
-     remark:"Marked 'income certificate mismatch'. This institute rejects 41% of applications for this exact reason — 3.4× the national average (12%). Flagged for district review.",
-     hash:"sha256:9f2a...c41e"},
-    {stage:"District Verification", officer:"—", status:"pending",
-     time:"awaiting institute clearance",
-     remark:"Cannot proceed until the flagged step above is resolved or overridden — this is deliberate, so a rejection can't be quietly skipped past.",
-     hash:null},
-    {stage:"State Verification", officer:"—", status:"pending", time:"—", remark:"", hash:null},
-    {stage:"Fund Disbursal", officer:"—", status:"pending", time:"—", remark:"", hash:null},
-  ];
-  const syntheticApplicants = ledgerApplicants.map(a=>`${a.student} (${a.id}, ${a.institute})`).join(' · ');
+function formatLedgerTime(timestamp){
+  if(!timestamp) return '—';
+  return new Intl.DateTimeFormat('en-IN', {
+    day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit',
+    hour12:false, timeZone:'Asia/Kolkata', timeZoneName:'short'
+  }).format(new Date(timestamp));
+}
+
+function updateLedgerApplicationSelect(selectedId){
+  const select = document.getElementById('ledger-app-select');
+  if(!select) return;
+  const knownIds = [...new Set([...(appId ? [appId] : []), ...ledgerApplicants.map(a=>a.id)])];
+  select.innerHTML = knownIds.map(id=>{
+    const applicant = ledgerApplicants.find(a=>a.id === id);
+    const label = applicant ? `${id} - ${applicant.student}` : `${id} - New mock application`;
+    return `<option value="${id}" ${id===selectedId?'selected':''}>${label}</option>`;
+  }).join('');
+}
+
+async function selectLedgerApplication(applicationId){
+  appId = applicationId;
+  await buildLedger(applicationId);
+}
+
+async function seedSubmittedApplication(applicationId){
+  for(const entry of newApplicationLedgerTemplate){
+    const res = await fetch('/api/ledger', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({applicationId, ...entry})
+    });
+    if(!res.ok) throw new Error('Ledger append failed');
+  }
+}
+
+async function fetchLedgerChain(applicationId){
+  const res = await fetch(`/api/ledger?applicationId=${encodeURIComponent(applicationId)}`);
+  if(!res.ok) throw new Error('Ledger API failed');
+  const data = await res.json();
+  return Array.isArray(data.chain) ? data.chain : [];
+}
+
+async function buildLedger(applicationId = appId || "NSP-88213"){
+  appId = applicationId;
+  document.getElementById('track-id').textContent = applicationId.replace(/^NSP-/, '');
+  updateLedgerApplicationSelect(applicationId);
   const el = document.getElementById('ledger-container');
+  const verifyResult = document.getElementById('ledger-verify-result');
+  if(verifyResult) verifyResult.textContent = 'Fetch a chain, then verify that every recorded hash still matches.';
+  el.innerHTML = '<div class="ledger-card"><div class="meta">Loading ledger chain…</div></div>';
+
+  let nodes = [];
+  try{
+    nodes = await fetchLedgerChain(applicationId);
+  }catch(err){
+    currentLedgerChain = [];
+    el.innerHTML = '<div class="ledger-card flagged"><div class="remark">Ledger API is unavailable. Deploy on Vercel to fetch the real hash chain.</div></div>';
+    return;
+  }
+
+  currentLedgerChain = nodes;
+  if(!nodes.length){
+    el.innerHTML = '<div class="ledger-card"><div class="remark">No ledger records found for this mock application yet.</div></div>';
+    return;
+  }
+
+  const syntheticApplicants = ledgerApplicants.map(a=>`${a.student} (${a.id}, ${a.institute})`).join(' · ');
   el.innerHTML = `<div class="meta" style="margin-bottom:14px">Synthetic demo applicants in this ledger sample: ${syntheticApplicants}</div>` + nodes.map(n=>{
     const cls = n.status==='flagged'?'flagged':(n.status==='pending'?'pending':'done');
     const badge = n.status==='flagged'
@@ -505,15 +582,50 @@ function buildLedger(){
     return `<div class="ledger-node ${cls}">
       <div class="ledger-card ${n.status==='flagged'?'flagged':''}">
         <div class="ledger-top">
-          <div><h4>${n.stage}</h4><div class="meta">${n.officer} · ${n.time}</div></div>
+          <div><h4>${escapeHtml(n.stage)}</h4><div class="meta">${escapeHtml(n.officer)} · ${formatLedgerTime(n.timestamp)}</div></div>
           ${badge}
         </div>
-        ${n.remark ? `<div class="remark">${n.remark}</div>` : ''}
-        ${n.hash ? `<div class="hash">record ${n.hash} — sealed, cannot be edited or removed</div>` : ''}
+        ${n.remark ? `<div class="remark">${escapeHtml(n.remark)}</div>` : ''}
+        ${n.hash ? `<div class="hash">record ${escapeHtml(n.hash)} — previous ${escapeHtml(n.previousHash)} — sealed, cannot be edited or removed</div>` : ''}
         ${n.status==='flagged' ? `<button class="btn btn-ghost" style="margin-top:12px;font-size:.8rem;padding:8px 14px" onclick="go('grievance')">File a grievance on this step →</button>` : ''}
       </div>
     </div>`;
   }).join('');
+}
+
+async function sha256Hex(text){
+  const bytes = new TextEncoder().encode(text);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyLedgerIntegrity(){
+  const result = document.getElementById('ledger-verify-result');
+  if(!currentLedgerChain.length){
+    result.textContent = 'No records loaded to verify yet.';
+    return;
+  }
+
+  for(let idx=0; idx<currentLedgerChain.length; idx++){
+    const record = currentLedgerChain[idx];
+    const entry = {
+      applicationId: record.applicationId,
+      stage: record.stage,
+      officer: record.officer,
+      status: record.status,
+      remark: record.remark
+    };
+    const expectedPrevious = idx === 0 ? 'GENESIS' : currentLedgerChain[idx - 1].hash;
+    const recomputed = await sha256Hex(expectedPrevious + JSON.stringify(entry) + record.timestamp);
+    if(record.previousHash !== expectedPrevious || record.hash !== recomputed){
+      result.textContent = `Chain broken at record ${idx + 1}: ${record.stage} no longer matches its recorded hash.`;
+      result.style.color = 'var(--bad)';
+      return;
+    }
+  }
+
+  result.textContent = `✓ Verified: all ${currentLedgerChain.length} records match their recorded hashes, none altered`;
+  result.style.color = 'var(--good)';
 }
 
 function fallbackAnomalySummary(){
