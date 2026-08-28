@@ -181,6 +181,40 @@
     font-size:.88rem;border-left:4px solid var(--sunlight);display:none;z-index:100;
     box-shadow:0 8px 24px rgba(0,0,0,.2);
   }
+
+  @media(max-width:600px){
+    .wrap{padding:0 16px;}
+    .topbar-inner{padding:12px 16px;align-items:flex-start;flex-wrap:wrap;gap:10px;}
+    .brand{font-size:1.05rem;}
+    .whoami{font-size:.7rem;margin-left:auto;padding-top:2px;}
+    nav.tabs{order:3;width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+    nav.tabs button{padding:8px 6px;border-radius:8px;font-size:.76rem;min-height:36px;}
+    section.view{padding:32px 0 56px;}
+    .hero{padding:34px 0 12px;}
+    .hero h1{font-size:2rem;}
+    .hero p.lead{font-size:1rem;}
+    .cta-row .btn{width:100%;justify-content:center;}
+    .compare{margin-top:34px;border-radius:10px;}
+    .compare > div{padding:20px 18px;}
+    .compare .before{border-right:none;border-bottom:1px solid var(--line);}
+    .card,.stat{border-radius:10px;padding:18px;}
+    .section-head h2{font-size:1.45rem;}
+    #view-apply > div[style*="display:flex"]{flex-direction:column;align-items:stretch;}
+    #view-apply > div[style*="display:flex"] .hint{align-self:flex-start!important;}
+    .ledger{padding-left:26px;margin-top:22px;}
+    .ledger::before{left:7px;}
+    .ledger-node::before{left:-27px;width:16px;height:16px;border-width:3px;}
+    .ledger-card{padding:14px 14px;}
+    .ledger-top{gap:8px;}
+    table,thead,tbody,tr,td{display:block;width:100%;}
+    thead{display:none;}
+    tr{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;background:#fff;}
+    tr.flag-row{background:#FFF7F6;border-color:#E7B9B3;}
+    td{display:grid;grid-template-columns:minmax(96px,38%) 1fr;gap:8px;padding:7px 0;border-bottom:none;}
+    td::before{content:attr(data-label);font-family:'IBM Plex Mono',monospace;font-size:.68rem;text-transform:uppercase;color:var(--slate);}
+    td:last-child{display:flex;justify-content:flex-start;padding-top:10px;}
+    td:last-child::before{content:'';display:none;}
+  }
 </style>
 </head>
 <body>
@@ -264,6 +298,10 @@
             <option>Sri Venkateswara College, Delhi</option>
             <option>Rural Degree College, Chitrakoot</option>
             <option>City Engineering Institute, Nashik</option>
+            <option>Ambedkar College of Arts, Nagpur</option>
+            <option>North Bengal Technical Institute, Siliguri</option>
+            <option>Malwa Women's College, Indore</option>
+            <option>Coastal Science College, Kozhikode</option>
           </select>
         </div>
         <div>
@@ -308,7 +346,7 @@
     <div class="grid3" style="margin-bottom:26px">
       <div class="stat"><div class="num">128,430</div><div class="label">Applications this cycle</div></div>
       <div class="stat"><div class="num">61%</div><div class="label">Approved within 30 days</div></div>
-      <div class="stat"><div class="num" style="color:var(--bad)">7</div><div class="label">Institutes flagged this month</div></div>
+      <div class="stat"><div class="num" style="color:var(--bad)">4</div><div class="label">Institutes flagged this month</div></div>
     </div>
 
     <div class="card">
@@ -364,6 +402,16 @@ const institutes = [
   {name:"Sri Venkateswara College, Delhi", apps:5310, rejRate:0.11, reason:"Duplicate application"},
   {name:"Rural Degree College, Chitrakoot", apps:980, rejRate:0.53, reason:"\"Document unclear\""},
   {name:"City Engineering Institute, Nashik", apps:3400, rejRate:0.14, reason:"Category proof missing"},
+  {name:"Ambedkar College of Arts, Nagpur", apps:1760, rejRate:0.09, reason:"Bank account not seeded"},
+  {name:"North Bengal Technical Institute, Siliguri", apps:1225, rejRate:0.32, reason:"Domicile certificate pending"},
+  {name:"Malwa Women's College, Indore", apps:2890, rejRate:0.07, reason:"Course code mismatch"},
+  {name:"Coastal Science College, Kozhikode", apps:1510, rejRate:0.28, reason:"Manual institute hold"},
+];
+
+const ledgerApplicants = [
+  {id:"NSP-88213", student:"Aisha Khatoon", institute:"Govt Polytechnic, Bhagalpur", category:"OBC", income:182000},
+  {id:"NSP-88491", student:"Meena Rawat", institute:"Rural Degree College, Chitrakoot", category:"SC", income:146000},
+  {id:"NSP-88706", student:"Sameer Ali", institute:"North Bengal Technical Institute, Siliguri", category:"General (EWS)", income:228500},
 ];
 
 const grievances = [
@@ -388,22 +436,42 @@ function toast(msg){
   setTimeout(()=>t.style.display='none', 3200);
 }
 
-/* ---------- AI eligibility (mocked reasoning — swap for a real OpenAI call server-side) ---------- */
-function runEligibility(){
+function escapeHtml(text){
+  return String(text).replace(/[&<>"']/g, ch=>({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[ch]));
+}
+
+/* ---------- AI eligibility ---------- */
+function fallbackEligibilityText(income, category){
+  const limit = 250000;
+  const eligible = income <= limit;
+  return eligible
+    ? `Based on the ₹${income.toLocaleString('en-IN')} family income you entered and the ${category} category limit of ₹${limit.toLocaleString('en-IN')}, you qualify for the Post-Matric Scholarship. Your documents (mocked here) look complete — the main risk from here is processing delay, not eligibility, so we'll flag if your institute is slow.`
+    : `Your entered income (₹${income.toLocaleString('en-IN')}) is above the ₹${limit.toLocaleString('en-IN')} limit for ${category}, so this scheme isn't a match. On the real portal this is often where students get silently rejected weeks later — here you're told immediately, before you waste a submission.`;
+}
+
+async function runEligibility(){
   const income = Number(document.getElementById('f-income').value);
   const category = document.getElementById('f-category').value;
+  const institute = document.getElementById('f-institute').value;
   const box = document.getElementById('ai-eligibility');
   box.style.display='block';
   box.innerHTML = `<div class="ai-box"><span class="ai-label">AI eligibility check</span><p>Checking…</p></div>`;
 
-  setTimeout(()=>{
-    const limit = 250000;
-    const eligible = income <= limit;
-    const msg = eligible
-      ? `Based on the ₹${income.toLocaleString('en-IN')} family income you entered and the ${category} category limit of ₹${limit.toLocaleString('en-IN')}, you qualify for the Post-Matric Scholarship. Your documents (mocked here) look complete — the main risk from here is processing delay, not eligibility, so we'll flag if your institute is slow.`
-      : `Your entered income (₹${income.toLocaleString('en-IN')}) is above the ₹${limit.toLocaleString('en-IN')} limit for ${category}, so this scheme isn't a match. On the real portal this is often where students get silently rejected weeks later — here you're told immediately, before you waste a submission.`;
-    box.innerHTML = `<div class="ai-box"><span class="ai-label">AI eligibility check</span><p>${msg}</p></div>`;
-  }, 700);
+  try{
+    const res = await fetch('/api/eligibility', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({income, category, institute})
+    });
+    if(!res.ok) throw new Error('Eligibility API failed');
+    const data = await res.json();
+    const msg = data.summary || fallbackEligibilityText(income, category);
+    box.innerHTML = `<div class="ai-box"><span class="ai-label">AI eligibility check</span><p>${escapeHtml(msg)}</p></div>`;
+  }catch(err){
+    box.innerHTML = `<div class="ai-box"><span class="ai-label">AI eligibility check</span><p>${escapeHtml(fallbackEligibilityText(income, category))}</p></div>`;
+  }
 }
 
 /* ---------- submit + ledger ---------- */
@@ -427,8 +495,9 @@ function buildLedger(){
     {stage:"State Verification", officer:"—", status:"pending", time:"—", remark:"", hash:null},
     {stage:"Fund Disbursal", officer:"—", status:"pending", time:"—", remark:"", hash:null},
   ];
+  const syntheticApplicants = ledgerApplicants.map(a=>`${a.student} (${a.id}, ${a.institute})`).join(' · ');
   const el = document.getElementById('ledger-container');
-  el.innerHTML = nodes.map(n=>{
+  el.innerHTML = `<div class="meta" style="margin-bottom:14px">Synthetic demo applicants in this ledger sample: ${syntheticApplicants}</div>` + nodes.map(n=>{
     const cls = n.status==='flagged'?'flagged':(n.status==='pending'?'pending':'done');
     const badge = n.status==='flagged'
       ? '<span class="badge badge-flag">⚑ flagged for review</span>'
@@ -447,23 +516,39 @@ function buildLedger(){
   }).join('');
 }
 
+function fallbackAnomalySummary(){
+  const flaggedList = institutes.filter(i=>i.rejRate>0.24).map(i=>i.name);
+  return `${flaggedList.length} institutes (${flaggedList.join(', ')}) show rejection rates more than double the national average, concentrated on vague or inconsistently-applied reasons like "document unclear" or "income mismatch." That pattern — a narrow, hard-to-contest reason, repeated far more than peers — is the fingerprint auditors typically look for by hand. Here it surfaces automatically, in public, every cycle.`;
+}
+
 /* ---------- dashboard ---------- */
-function renderDashboard(){
+async function renderDashboard(){
   const tbody = document.getElementById('dash-table');
   tbody.innerHTML = institutes.map(i=>{
     const flagged = i.rejRate > 0.24; // >2x national avg (12%)
     return `<tr class="${flagged?'flag-row':''}">
-      <td>${i.name}</td>
-      <td>${i.apps.toLocaleString('en-IN')}</td>
-      <td>${(i.rejRate*100).toFixed(0)}%</td>
-      <td>${i.reason}</td>
-      <td>${flagged ? '<span class="badge badge-flag">⚑ flagged</span>' : '<span class="badge badge-good">normal</span>'}</td>
+      <td data-label="Institute">${i.name}</td>
+      <td data-label="Applications">${i.apps.toLocaleString('en-IN')}</td>
+      <td data-label="Rejection rate">${(i.rejRate*100).toFixed(0)}%</td>
+      <td data-label="Top reason">${i.reason}</td>
+      <td data-label="Status">${flagged ? '<span class="badge badge-flag">⚑ flagged</span>' : '<span class="badge badge-good">normal</span>'}</td>
     </tr>`;
   }).join('');
 
-  const flaggedList = institutes.filter(i=>i.rejRate>0.24).map(i=>i.name);
-  document.getElementById('dash-ai-summary').textContent =
-    `${flaggedList.length} institutes (${flaggedList.join(', ')}) show rejection rates more than double the national average, concentrated on vague or inconsistently-applied reasons like "document unclear" or "income mismatch." That pattern — a narrow, hard-to-contest reason, repeated far more than peers — is the fingerprint auditors typically look for by hand. Here it surfaces automatically, in public, every cycle.`;
+  const summary = document.getElementById('dash-ai-summary');
+  summary.textContent = 'Loading…';
+  try{
+    const res = await fetch('/api/anomaly-summary', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({institutes, nationalAverage:0.12})
+    });
+    if(!res.ok) throw new Error('Anomaly API failed');
+    const data = await res.json();
+    summary.textContent = data.summary || fallbackAnomalySummary();
+  }catch(err){
+    summary.textContent = fallbackAnomalySummary();
+  }
 }
 
 /* ---------- grievances ---------- */
