@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NSP Sunlight — A Scholarship Portal You Can See Through</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0F2137;
+    --ink-soft:#1B3350;
+    --paper:#FBF8F1;
+    --paper-dim:#F1ECE0;
+    --sunlight:#F2A93B;
+    --sunlight-soft:#FCE3B4;
+    --good:#2F7A4D;
+    --bad:#B23A2E;
+    --slate:#5B6B7C;
+    --line:#DCD4C2;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.serif{font-family:'Source Serif 4',serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 24px;}
+
+  /* Top bar */
+  header.topbar{
+    position:sticky;top:0;z-index:50;
+    background:var(--ink);
+    color:var(--paper);
+    border-bottom:3px solid var(--sunlight);
+  }
+  .topbar-inner{
+    max-width:1040px;margin:0 auto;padding:14px 24px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-family:'Source Serif 4',serif;font-weight:700;font-size:1.15rem;letter-spacing:.2px;}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--sunlight);box-shadow:0 0 0 4px rgba(242,169,59,.25);}
+  nav.tabs{display:flex;gap:4px;flex-wrap:wrap;}
+  nav.tabs button{
+    background:transparent;border:1px solid transparent;color:var(--paper);
+    padding:8px 14px;border-radius:999px;font-size:.88rem;cursor:pointer;
+    font-family:'Inter',sans-serif;font-weight:500;opacity:.75;transition:.15s;
+  }
+  nav.tabs button:hover{opacity:1;}
+  nav.tabs button.active{background:var(--sunlight);color:var(--ink);opacity:1;font-weight:600;}
+  .whoami{font-size:.78rem;opacity:.7;font-family:'IBM Plex Mono',monospace;}
+
+  .mock-banner{
+    background:var(--sunlight-soft);
+    border-bottom:1px solid var(--line);
+    color:var(--ink);
+    font-size:.82rem;
+    text-align:center;
+    padding:7px 12px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+
+  section.view{display:none;padding:48px 0 80px;}
+  section.view.active{display:block;}
+
+  /* Landing */
+  .hero{padding:56px 0 20px;}
+  .hero .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:.78rem;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--bad);margin-bottom:14px;display:inline-block;
+    border:1px solid var(--bad);padding:3px 10px;border-radius:999px;
+  }
+  .hero h1{font-size:2.6rem;line-height:1.12;margin:0 0 18px;max-width:760px;}
+  .hero h1 em{font-style:normal;color:var(--sunlight);background:linear-gradient(transparent 60%, var(--sunlight-soft) 60%);}
+  .hero p.lead{font-size:1.12rem;color:var(--ink-soft);max-width:600px;line-height:1.6;margin-bottom:28px;}
+  .cta-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:13px 22px;border-radius:8px;border:none;cursor:pointer;
+    font-family:'Inter',sans-serif;font-weight:600;font-size:.95rem;
+    transition:.15s;
+  }
+  .btn-primary{background:var(--ink);color:var(--paper);}
+  .btn-primary:hover{background:var(--ink-soft);}
+  .btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--ink);}
+  .btn-sunlight{background:var(--sunlight);color:var(--ink);}
+  .btn-sunlight:hover{filter:brightness(1.05);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+
+  .compare{
+    margin-top:60px;display:grid;grid-template-columns:1fr 1fr;gap:0;
+    border:1px solid var(--line);border-radius:14px;overflow:hidden;
+  }
+  .compare > div{padding:26px 28px;}
+  .compare .before{background:#F4EFE4;border-right:1px solid var(--line);}
+  .compare .after{background:var(--ink);color:var(--paper);}
+  .compare h4{font-family:'IBM Plex Mono',monospace;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;margin:0 0 14px;opacity:.7;}
+  .compare ul{margin:0;padding-left:18px;line-height:1.9;font-size:.92rem;}
+  .compare .after ul li::marker{color:var(--sunlight);}
+
+  /* Cards */
+  .card{
+    background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px;
+  }
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+  @media(max-width:760px){.grid2,.grid3,.compare{grid-template-columns:1fr;}}
+
+  label{display:block;font-size:.83rem;font-weight:600;margin:16px 0 6px;color:var(--ink-soft);}
+  label:first-child{margin-top:0;}
+  input,select,textarea{
+    width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:8px;
+    font-family:'Inter',sans-serif;font-size:.94rem;background:var(--paper);color:var(--ink);
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--sunlight);outline-offset:1px;border-color:var(--sunlight);}
+  .hint{font-size:.78rem;color:var(--slate);margin-top:4px;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:600px){.field-row{grid-template-columns:1fr;}}
+
+  .section-head{margin-bottom:26px;}
+  .section-head .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--slate);}
+  .section-head h2{font-size:1.7rem;margin:6px 0 8px;}
+  .section-head p{color:var(--slate);max-width:560px;line-height:1.55;margin:0;}
+
+  .ai-box{
+    background:var(--ink);color:var(--paper);border-radius:12px;padding:20px 22px;margin-top:20px;
+    border-left:4px solid var(--sunlight);
+  }
+  .ai-box .ai-label{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sunlight);margin-bottom:8px;display:block;}
+  .ai-box p{margin:0 0 8px;line-height:1.55;font-size:.93rem;}
+  .ai-box p:last-child{margin-bottom:0;}
+
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:.76rem;font-weight:600;padding:3px 10px;border-radius:999px;font-family:'IBM Plex Mono',monospace;}
+  .badge-good{background:#E4F1E8;color:var(--good);}
+  .badge-pending{background:#F1ECE0;color:var(--slate);}
+  .badge-flag{background:#FCEAE7;color:var(--bad);}
+  .badge-sun{background:var(--sunlight-soft);color:#8A5A0F;}
+
+  /* Ledger timeline */
+  .ledger{position:relative;margin-top:30px;padding-left:34px;}
+  .ledger::before{content:'';position:absolute;left:10px;top:6px;bottom:6px;width:2px;background:linear-gradient(var(--line),var(--sunlight),var(--line));}
+  .ledger-node{position:relative;margin-bottom:26px;}
+  .ledger-node::before{
+    content:'';position:absolute;left:-34px;top:4px;width:20px;height:20px;border-radius:50%;
+    background:#fff;border:3px solid var(--ink);
+  }
+  .ledger-node.done::before{border-color:var(--good);background:var(--good);}
+  .ledger-node.flagged::before{border-color:var(--bad);background:var(--bad);}
+  .ledger-node.pending::before{border-color:var(--line);background:#fff;}
+  .ledger-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 18px;}
+  .ledger-card.flagged{border-color:var(--bad);background:#FFF7F6;}
+  .ledger-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+  .ledger-top h4{margin:0 0 4px;font-size:1rem;font-family:'Inter',sans-serif;font-weight:700;}
+  .meta{font-family:'IBM Plex Mono',monospace;font-size:.74rem;color:var(--slate);}
+  .remark{margin-top:10px;font-size:.9rem;color:var(--ink-soft);line-height:1.5;}
+  .hash{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--slate);opacity:.7;margin-top:8px;word-break:break-all;}
+
+  /* Dashboard */
+  .stat{padding:20px;border:1px solid var(--line);border-radius:12px;background:#fff;}
+  .stat .num{font-family:'Source Serif 4',serif;font-size:2.1rem;font-weight:700;}
+  .stat .label{font-size:.82rem;color:var(--slate);margin-top:2px;}
+  table{width:100%;border-collapse:collapse;font-size:.88rem;}
+  th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--slate);padding:8px 10px;border-bottom:1px solid var(--line);}
+  td{padding:10px 10px;border-bottom:1px solid var(--line);}
+  tr.flag-row{background:#FFF7F6;}
+
+  .grievance-item{border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px;background:#fff;}
+  .grievance-item.open{border-left:4px solid var(--bad);}
+  .grievance-item.resolved{border-left:4px solid var(--good);}
+
+  footer{border-top:1px solid var(--line);padding:24px;text-align:center;font-size:.8rem;color:var(--slate);font-family:'IBM Plex Mono',monospace;}
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:var(--paper);padding:12px 20px;border-radius:8px;
+    font-size:.88rem;border-left:4px solid var(--sunlight);display:none;z-index:100;
+    box-shadow:0 8px 24px rgba(0,0,0,.2);
+  }
+</style>
+</head>
+<body>
+
+<div class="mock-banner">⚠ HACKATHON PROTOTYPE — every name, document, officer, and record below is synthetic mock data. No real NSP, Aadhaar, or government system is accessed.</div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="dot"></span> NSP Sunlight</div>
+    <nav class="tabs">
+      <button data-view="home" class="active">Home</button>
+      <button data-view="apply">Apply</button>
+      <button data-view="track">Track</button>
+      <button data-view="dashboard">Public Dashboard</button>
+      <button data-view="grievance">Grievance</button>
+    </nav>
+    <div class="whoami">student: aisha.k@mock</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- HOME -->
+  <section class="view active" id="view-home">
+    <div class="hero">
+      <span class="eyebrow">Where scholarship money quietly disappears</span>
+      <h1>See exactly where your scholarship is stuck — and <em>why</em>.</h1>
+      <p class="lead">On the real NSP, an application can sit silently at any of four verification desks with no explanation. That silence is where bribes, favoritism, and lost files happen. NSP Sunlight makes every step public, timestamped, and explained in plain language — so nothing can happen in the dark.</p>
+      <div class="cta-row">
+        <button class="btn btn-primary" onclick="go('apply')">Start an application →</button>
+        <button class="btn btn-ghost" onclick="go('dashboard')">See the public dashboard</button>
+      </div>
+    </div>
+
+    <div class="compare">
+      <div class="before">
+        <h4>Today, on NSP</h4>
+        <ul>
+          <li>"Under process at institute level" — for weeks, no name attached</li>
+          <li>Rejections cite a code, never a reason a student can act on</li>
+          <li>No way to know if your college is unusually slow or unusually strict</li>
+          <li>Complaints go into a form that closes itself with no explanation</li>
+        </ul>
+      </div>
+      <div class="after">
+        <h4>On Sunlight</h4>
+        <ul>
+          <li>Every stage names the officer, the timestamp, and the decision</li>
+          <li>Rejections come with a plain-language reason and next step</li>
+          <li>Institutes with abnormal rejection or delay rates are flagged, publicly</li>
+          <li>Grievances stay open and visible until resolved with a stated reason</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- APPLY -->
+  <section class="view" id="view-apply">
+    <div class="section-head">
+      <span class="eyebrow">Step 1 of 1 · Application</span>
+      <h2>Apply for the Post-Matric Scholarship</h2>
+      <p>Fields are pre-filled from mock DigiLocker for this demo. In production this would pull verified documents directly, removing manual upload errors.</p>
+    </div>
+
+    <div class="card">
+      <div class="field-row">
+        <div>
+          <label>Full name</label>
+          <input id="f-name" value="Aisha Khatoon">
+        </div>
+        <div>
+          <label>Annual family income (₹)</label>
+          <input id="f-income" value="182000">
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label>Institute</label>
+          <select id="f-institute">
+            <option>Govt Polytechnic, Bhagalpur</option>
+            <option>Sri Venkateswara College, Delhi</option>
+            <option>Rural Degree College, Chitrakoot</option>
+            <option>City Engineering Institute, Nashik</option>
+          </select>
+        </div>
+        <div>
+          <label>Course & year</label>
+          <input id="f-course" value="B.Tech, 2nd Year">
+        </div>
+      </div>
+      <label>Category</label>
+      <select id="f-category">
+        <option>OBC</option><option>SC</option><option>ST</option><option>General (EWS)</option>
+      </select>
+
+      <button class="btn btn-sunlight" style="margin-top:22px" onclick="runEligibility()">Check my eligibility (AI)</button>
+
+      <div id="ai-eligibility" style="display:none"></div>
+    </div>
+
+    <div style="margin-top:20px; display:flex; gap:12px;">
+      <button class="btn btn-primary" id="submit-btn" onclick="submitApplication()">Submit application</button>
+      <span class="hint" style="align-self:center">You'll be able to track every step of this application publicly, from here.</span>
+    </div>
+  </section>
+
+  <!-- TRACK -->
+  <section class="view" id="view-track">
+    <div class="section-head">
+      <span class="eyebrow">Application #<span id="track-id">—</span></span>
+      <h2>The full journey, in the open</h2>
+      <p>Nothing below can be edited or deleted after the fact — only added to. That's the point.</p>
+    </div>
+    <div id="ledger-container" class="ledger"></div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="view" id="view-dashboard">
+    <div class="section-head">
+      <span class="eyebrow">Live · Public · Anonymised</span>
+      <h2>Where the money and the delays actually go</h2>
+      <p>This is the anti-corruption layer: aggregate numbers anyone — a journalist, an auditor, a parent — can check without filing an RTI.</p>
+    </div>
+
+    <div class="grid3" style="margin-bottom:26px">
+      <div class="stat"><div class="num">128,430</div><div class="label">Applications this cycle</div></div>
+      <div class="stat"><div class="num">61%</div><div class="label">Approved within 30 days</div></div>
+      <div class="stat"><div class="num" style="color:var(--bad)">7</div><div class="label">Institutes flagged this month</div></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;font-size:1.05rem">Institute rejection rates vs national average (12%)</h3>
+      <table>
+        <thead><tr><th>Institute</th><th>Applications</th><th>Rejection rate</th><th>Top cited reason</th><th></th></tr></thead>
+        <tbody id="dash-table"></tbody>
+      </table>
+    </div>
+
+    <div class="ai-box" style="margin-top:20px">
+      <span class="ai-label">AI anomaly summary</span>
+      <p id="dash-ai-summary">Loading…</p>
+    </div>
+  </section>
+
+  <!-- GRIEVANCE -->
+  <section class="view" id="view-grievance">
+    <div class="section-head">
+      <span class="eyebrow">Tied to a real application — never anonymous to the system, always public in outcome</span>
+      <h2>Raise a grievance</h2>
+      <p>A grievance filed here is pinned to a specific stalled step on the public ledger. It cannot be closed without a stated reason that stays visible.</p>
+    </div>
+
+    <div class="card">
+      <label>Which application step is this about?</label>
+      <select id="g-step">
+        <option>#NSP-88213 — Institute Verification (Govt Polytechnic, Bhagalpur) — pending 41 days</option>
+      </select>
+      <label>What happened?</label>
+      <textarea id="g-text" rows="4">My application has been "under review" at the institute level for 41 days with no update, well past the 15-day guideline.</textarea>
+      <button class="btn btn-primary" style="margin-top:18px" onclick="fileGrievance()">File publicly</button>
+    </div>
+
+    <h3 style="margin:34px 0 14px">Open & resolved grievances</h3>
+    <div id="grievance-list"></div>
+  </section>
+
+</div>
+
+<footer>
+  NSP Sunlight — a hackathon prototype for transparent, accountable public scholarship disbursal. Not affiliated with the Government of India. All data is synthetic.
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- state ---------- */
+let appId = null;
+
+const institutes = [
+  {name:"Govt Polytechnic, Bhagalpur", apps:2140, rejRate:0.41, reason:"Income certificate mismatch"},
+  {name:"Sri Venkateswara College, Delhi", apps:5310, rejRate:0.11, reason:"Duplicate application"},
+  {name:"Rural Degree College, Chitrakoot", apps:980, rejRate:0.53, reason:"\"Document unclear\""},
+  {name:"City Engineering Institute, Nashik", apps:3400, rejRate:0.14, reason:"Category proof missing"},
+];
+
+const grievances = [
+  {id:"GRV-1042", text:"Verification stuck 41 days at institute level, no reason given.", status:"open", resolution:null},
+  {id:"GRV-1039", text:"Rejected for 'income mismatch' but income certificate was current.", status:"resolved", resolution:"District office re-verified and reversed the rejection. Institute officer flagged for review (2nd flag this quarter)."},
+];
+
+/* ---------- nav ---------- */
+function go(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  if(view==='dashboard') renderDashboard();
+  if(view==='grievance') renderGrievances();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('nav.tabs button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.display='block';
+  setTimeout(()=>t.style.display='none', 3200);
+}
+
+/* ---------- AI eligibility (mocked reasoning — swap for a real OpenAI call server-side) ---------- */
+function runEligibility(){
+  const income = Number(document.getElementById('f-income').value);
+  const category = document.getElementById('f-category').value;
+  const box = document.getElementById('ai-eligibility');
+  box.style.display='block';
+  box.innerHTML = `<div class="ai-box"><span class="ai-label">AI eligibility check</span><p>Checking…</p></div>`;
+
+  setTimeout(()=>{
+    const limit = 250000;
+    const eligible = income <= limit;
+    const msg = eligible
+      ? `Based on the ₹${income.toLocaleString('en-IN')} family income you entered and the ${category} category limit of ₹${limit.toLocaleString('en-IN')}, you qualify for the Post-Matric Scholarship. Your documents (mocked here) look complete — the main risk from here is processing delay, not eligibility, so we'll flag if your institute is slow.`
+      : `Your entered income (₹${income.toLocaleString('en-IN')}) is above the ₹${limit.toLocaleString('en-IN')} limit for ${category}, so this scheme isn't a match. On the real portal this is often where students get silently rejected weeks later — here you're told immediately, before you waste a submission.`;
+    box.innerHTML = `<div class="ai-box"><span class="ai-label">AI eligibility check</span><p>${msg}</p></div>`;
+  }, 700);
+}
+
+/* ---------- submit + ledger ---------- */
+function submitApplication(){
+  appId = "NSP-" + Math.floor(80000+Math.random()*9999);
+  toast("Application "+appId+" submitted. Opening your public timeline…");
+  setTimeout(()=>{ buildLedger(); go('track'); }, 500);
+}
+
+function buildLedger(){
+  document.getElementById('track-id').textContent = appId || "88213";
+  const nodes = [
+    {stage:"Institute Verification", officer:"R. Sinha, Scholarship Cell", status:"flagged",
+     time:"14 Aug 2026, 11:02 IST",
+     remark:"Marked 'income certificate mismatch'. This institute rejects 41% of applications for this exact reason — 3.4× the national average (12%). Flagged for district review.",
+     hash:"sha256:9f2a...c41e"},
+    {stage:"District Verification", officer:"—", status:"pending",
+     time:"awaiting institute clearance",
+     remark:"Cannot proceed until the flagged step above is resolved or overridden — this is deliberate, so a rejection can't be quietly skipped past.",
+     hash:null},
+    {stage:"State Verification", officer:"—", status:"pending", time:"—", remark:"", hash:null},
+    {stage:"Fund Disbursal", officer:"—", status:"pending", time:"—", remark:"", hash:null},
+  ];
+  const el = document.getElementById('ledger-container');
+  el.innerHTML = nodes.map(n=>{
+    const cls = n.status==='flagged'?'flagged':(n.status==='pending'?'pending':'done');
+    const badge = n.status==='flagged'
+      ? '<span class="badge badge-flag">⚑ flagged for review</span>'
+      : (n.status==='pending' ? '<span class="badge badge-pending">pending</span>' : '<span class="badge badge-good">✓ verified</span>');
+    return `<div class="ledger-node ${cls}">
+      <div class="ledger-card ${n.status==='flagged'?'flagged':''}">
+        <div class="ledger-top">
+          <div><h4>${n.stage}</h4><div class="meta">${n.officer} · ${n.time}</div></div>
+          ${badge}
+        </div>
+        ${n.remark ? `<div class="remark">${n.remark}</div>` : ''}
+        ${n.hash ? `<div class="hash">record ${n.hash} — sealed, cannot be edited or removed</div>` : ''}
+        ${n.status==='flagged' ? `<button class="btn btn-ghost" style="margin-top:12px;font-size:.8rem;padding:8px 14px" onclick="go('grievance')">File a grievance on this step →</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- dashboard ---------- */
+function renderDashboard(){
+  const tbody = document.getElementById('dash-table');
+  tbody.innerHTML = institutes.map(i=>{
+    const flagged = i.rejRate > 0.24; // >2x national avg (12%)
+    return `<tr class="${flagged?'flag-row':''}">
+      <td>${i.name}</td>
+      <td>${i.apps.toLocaleString('en-IN')}</td>
+      <td>${(i.rejRate*100).toFixed(0)}%</td>
+      <td>${i.reason}</td>
+      <td>${flagged ? '<span class="badge badge-flag">⚑ flagged</span>' : '<span class="badge badge-good">normal</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  const flaggedList = institutes.filter(i=>i.rejRate>0.24).map(i=>i.name);
+  document.getElementById('dash-ai-summary').textContent =
+    `${flaggedList.length} institutes (${flaggedList.join(', ')}) show rejection rates more than double the national average, concentrated on vague or inconsistently-applied reasons like "document unclear" or "income mismatch." That pattern — a narrow, hard-to-contest reason, repeated far more than peers — is the fingerprint auditors typically look for by hand. Here it surfaces automatically, in public, every cycle.`;
+}
+
+/* ---------- grievances ---------- */
+function fileGrievance(){
+  const text = document.getElementById('g-text').value.trim();
+  if(!text) return;
+  grievances.unshift({id:"GRV-"+Math.floor(1050+Math.random()*900), text, status:"open", resolution:null});
+  toast("Grievance filed and published to the public log.");
+  renderGrievances();
+}
+function renderGrievances(){
+  document.getElementById('grievance-list').innerHTML = grievances.map(g=>`
+    <div class="grievance-item ${g.status}">
+      <div class="ledger-top">
+        <div class="meta">${g.id}</div>
+        ${g.status==='open' ? '<span class="badge badge-flag">open</span>' : '<span class="badge badge-good">resolved</span>'}
+      </div>
+      <div class="remark">${g.text}</div>
+      ${g.resolution ? `<div class="ai-box" style="margin-top:12px"><span class="ai-label">Resolution (public)</span><p>${g.resolution}</p></div>` : ''}
+    </div>
+  `).join('');
+}
+
+/* init */
+buildLedger();
+renderDashboard();
+renderGrievances();
+</script>
+</body>
+</html>
